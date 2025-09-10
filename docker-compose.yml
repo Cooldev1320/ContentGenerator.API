@@ -68,6 +68,7 @@ services:
       - Email__FromEmail=noreply@contentgenerator.com
       - FileStorage__StoragePath=/app/uploads
       - FileStorage__MaxFileSizeMB=10
+      - ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3001,https://localhost:3000,https://localhost:3001
     ports:
       - "5000:80"
     volumes:

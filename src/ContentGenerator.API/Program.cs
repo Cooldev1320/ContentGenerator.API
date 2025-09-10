@@ -48,8 +48,33 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("DefaultPolicy", policy =>
     {
-        var allowedOrigins = builder.Configuration["ALLOWED_ORIGINS"]?.Split(',') ?? new[] { "http://localhost:3000" };
-        policy.WithOrigins(allowedOrigins)
+        var allowedOrigins = builder.Configuration["ALLOWED_ORIGINS"]?.Split(',') ?? new[] { "http://localhost:3000", "http://localhost:3001", "https://localhost:3000", "https://localhost:3001" };
+        
+        // Filter out any wildcard origins and ensure we have valid origins
+        var validOrigins = allowedOrigins
+            .Where(origin => !string.IsNullOrWhiteSpace(origin) && origin != "*")
+            .ToArray();
+        
+        if (validOrigins.Length > 0)
+        {
+            policy.WithOrigins(validOrigins)
+                  .AllowAnyMethod()
+                  .AllowAnyHeader()
+                  .AllowCredentials();
+        }
+        else
+        {
+            // Fallback policy without credentials if no valid origins
+            policy.AllowAnyOrigin()
+                  .AllowAnyMethod()
+                  .AllowAnyHeader();
+        }
+    });
+    
+    // Add a development policy for local development
+    options.AddPolicy("DevelopmentPolicy", policy =>
+    {
+        policy.WithOrigins("http://localhost:3000", "http://localhost:3001", "https://localhost:3000", "https://localhost:3001")
               .AllowAnyMethod()
               .AllowAnyHeader()
               .AllowCredentials();
@@ -126,7 +151,15 @@ app.UseMiddleware<RateLimitingMiddleware>();
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 
-app.UseCors("DefaultPolicy");
+// Use appropriate CORS policy based on environment
+if (app.Environment.IsDevelopment())
+{
+    app.UseCors("DevelopmentPolicy");
+}
+else
+{
+    app.UseCors("DefaultPolicy");
+}
 
 app.UseAuthentication();
 app.UseAuthorization();
