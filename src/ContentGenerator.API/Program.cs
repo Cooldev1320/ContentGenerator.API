@@ -147,11 +147,14 @@ if (!builder.Environment.IsDevelopment())
 var app = builder.Build();
 
 // Configure the HTTP request pipeline
-if (app.Environment.IsDevelopment())
+// Enable Swagger in both development and production for API documentation
+app.UseSwagger();
+app.UseSwaggerUI(c =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Content Generator API v1");
+    c.RoutePrefix = "swagger"; // Set Swagger UI at /swagger
+    c.DocumentTitle = "ContentGenerator API Documentation";
+});
 
 // Custom middleware
 app.UseMiddleware<ErrorHandlingMiddleware>();
@@ -184,6 +187,24 @@ app.UseMiddleware<AuthMiddleware>();
 app.UseRateLimiter();
 
 app.MapControllers();
+
+// Add a simple root endpoint
+app.MapGet("/", () => new
+{
+    message = "ContentGenerator API is running!",
+    version = "v1",
+    documentation = "/swagger",
+    health = "/health",
+    timestamp = DateTime.UtcNow
+});
+
+// Add a health check endpoint
+app.MapGet("/health", () => new
+{
+    status = "healthy",
+    timestamp = DateTime.UtcNow,
+    environment = app.Environment.EnvironmentName
+});
 
 // Database migration on startup
 try
