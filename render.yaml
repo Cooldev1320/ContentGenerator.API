@@ -1,0 +1,59 @@
+services:
+  - type: web
+    name: contentgenerator-api
+    env: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: starter
+    region: oregon
+    branch: main
+    buildCommand: ""
+    startCommand: ""
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ASPNETCORE_URLS
+        value: http://0.0.0.0:$PORT
+      - key: PORT
+        value: 10000
+      - key: CONNECTION_STRING
+        fromDatabase:
+          name: contentgenerator-db
+          property: connectionString
+      - key: JWT_KEY
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: ALLOWED_ORIGINS
+        value: https://yourdomain.com,https://your-frontend-domain.com
+      - key: STRIPE_PUBLISHABLE_KEY
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: UNSPLASH_ACCESS_KEY
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USERNAME
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: SMTP_FROM_EMAIL
+        value: noreply@contentgenerator.com
+      - key: STORAGE_PATH
+        value: /app/uploads
+      - key: MAX_FILE_SIZE_MB
+        value: "10"
+
+databases:
+  - name: contentgenerator-db
+    plan: starter
+    region: oregon

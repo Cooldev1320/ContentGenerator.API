@@ -39,8 +39,8 @@ RUN apt-get update && apt-get install -y \
 # Create non-root user for security
 RUN groupadd -r appuser && useradd -r -g appuser appuser
 
-# Create directories for file uploads and logs
-RUN mkdir -p /app/uploads /app/logs && \
+# Create directories for file uploads, logs, wwwroot, and data protection
+RUN mkdir -p /app/uploads /app/logs /app/wwwroot /app/data-protection-keys && \
     chown -R appuser:appuser /app
 
 # Copy published application
@@ -59,6 +59,7 @@ EXPOSE 443
 # Set environment variables
 ENV ASPNETCORE_URLS=http://+:80
 ENV ASPNETCORE_ENVIRONMENT=Production
+ENV ASPNETCORE_Kestrel__Endpoints__Http__Url=http://0.0.0.0:80
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \

@@ -8,6 +8,7 @@ using ContentGenerator.Infrastructure.Services;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
 using DotNetEnv;
+using Microsoft.AspNetCore.DataProtection;
 
 // Load .env file
 Env.Load();
@@ -135,6 +136,14 @@ builder.Services.AddScoped<IStripeService, StripeService>();
 // Add logging
 builder.Services.AddLogging();
 
+// Configure data protection for production
+if (!builder.Environment.IsDevelopment())
+{
+    builder.Services.AddDataProtection()
+        .PersistKeysToFileSystem(new DirectoryInfo("/app/data-protection-keys"))
+        .SetApplicationName("ContentGenerator.API");
+}
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline
@@ -148,7 +157,12 @@ if (app.Environment.IsDevelopment())
 app.UseMiddleware<ErrorHandlingMiddleware>();
 app.UseMiddleware<RateLimitingMiddleware>();
 
-app.UseHttpsRedirection();
+// Only use HTTPS redirection in development or when HTTPS is configured
+if (app.Environment.IsDevelopment() || !string.IsNullOrEmpty(builder.Configuration["HTTPS_PORT"]))
+{
+    app.UseHttpsRedirection();
+}
+
 app.UseStaticFiles();
 
 // Use appropriate CORS policy based on environment

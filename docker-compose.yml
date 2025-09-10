@@ -48,6 +48,7 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:80
+      - ASPNETCORE_Kestrel__Endpoints__Http__Url=http://0.0.0.0:80
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=contentgenerator;Username=postgres;Password=postgres123
       - Redis__ConnectionString=redis:6379
       - JWT__Secret=your-super-secret-jwt-key-change-this-in-production
