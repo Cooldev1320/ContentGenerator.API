@@ -1,0 +1,138 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: contentgenerator-postgres
+    environment:
+      POSTGRES_DB: contentgenerator
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres123
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    networks:
+      - contentgenerator-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for caching and session storage
+  redis:
+    image: redis:7-alpine
+    container_name: contentgenerator-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - contentgenerator-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ContentGenerator API
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: contentgenerator-api
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=contentgenerator;Username=postgres;Password=postgres123
+      - Redis__ConnectionString=redis:6379
+      - JWT__Secret=your-super-secret-jwt-key-change-this-in-production
+      - JWT__Issuer=ContentGenerator.API
+      - JWT__Audience=ContentGenerator.API
+      - JWT__ExpiryMinutes=60
+      - Supabase__Url=your-supabase-url
+      - Supabase__AnonKey=your-supabase-anon-key
+      - Supabase__ServiceRoleKey=your-supabase-service-role-key
+      - Stripe__PublishableKey=your-stripe-publishable-key
+      - Stripe__SecretKey=your-stripe-secret-key
+      - Stripe__WebhookSecret=your-stripe-webhook-secret
+      - Unsplash__AccessKey=your-unsplash-access-key
+      - Email__SmtpHost=your-smtp-host
+      - Email__SmtpPort=587
+      - Email__SmtpUsername=your-smtp-username
+      - Email__SmtpPassword=your-smtp-password
+      - Email__FromEmail=noreply@contentgenerator.com
+      - FileStorage__StoragePath=/app/uploads
+      - FileStorage__MaxFileSizeMB=10
+    ports:
+      - "5000:80"
+    volumes:
+      - uploads_data:/app/uploads
+      - logs_data:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - contentgenerator-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Nginx Reverse Proxy (Optional)
+  nginx:
+    image: nginx:alpine
+    container_name: contentgenerator-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/ssl:/etc/nginx/ssl
+      - uploads_data:/var/www/uploads
+    depends_on:
+      - api
+    networks:
+      - contentgenerator-network
+    profiles:
+      - production
+
+  # Database Migration Service
+  migration:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: contentgenerator-migration
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=contentgenerator;Username=postgres;Password=postgres123
+    command: ["dotnet", "ef", "database", "update"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - contentgenerator-network
+    profiles:
+      - migration
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  uploads_data:
+    driver: local
+  logs_data:
+    driver: local
+
+networks:
+  contentgenerator-network:
+    driver: bridge
