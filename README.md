@@ -1,7 +1,7 @@
 # ContentGenerator.API
 
 A comprehensive .NET 9.0 Web API for content generation and management, built with clean architecture principles and modern development practices.
-
+<video src="https://github.com/user-attachments/assets/24f7cafb-5b33-446f-928a-51206e3f2613" autoplay loop muted playsinline width="600"></video>
 ## 🚀 Features
 
 - **User Management**: Authentication, authorization, and user profile management
